@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관재 업무 · 물품 회수 기록</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f1f4f2;color:#172c24;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}
+  main{max-width:960px;margin:auto;padding:26px 18px 56px}
+  header{padding:24px 0 28px;background:#12382e;color:#f3faf6;border-bottom:4px solid #a6c7a9}
+  .heading{max-width:960px;margin:auto;padding:0 18px}
+  .workspace{font-size:14px;font-weight:650;color:#c2ddd0;margin:0 0 7px}
+  h1{font-size:clamp(27px,5vw,39px);letter-spacing:-.035em;margin:0 0 4px}
+  header p:last-child{margin:0;color:#e0ece5}
+  h2{font-size:20px;margin:0 0 12px}
+  p{margin:0 0 12px}
+  section,article{background:#fff;border:1px solid #d4ded8;border-radius:12px;padding:20px;margin-bottom:16px}
+  article{background:#f7faf8}label{display:block;font-size:14px;font-weight:650}small,.muted{color:#445c51;font-size:14px}
+  .uploads,.fields,.pictures{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}.pictures{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .uploads label{background:#f4f8f5;border:1px solid #ccd9d0;border-radius:8px;padding:12px;min-width:0}.uploads small{display:block;font-weight:400}
+  input,select,button{font:inherit}input:not([type=file]),select{width:100%;margin:4px 0 8px;padding:8px 10px;min-height:44px;border:1px solid #a8bcb0;border-radius:7px;background:#fff;color:#172c24}
+  input[type=file]{width:100%;display:block;margin:8px 0;font-size:13px;font-weight:400}
+  button{border:0;border-radius:7px;background:#e4eee7;color:#174835;font-weight:650;padding:9px 14px;min-height:44px;cursor:pointer}
+  button.primary{background:#185840;color:white}button:disabled,input:disabled,select:disabled{opacity:.55}
+  :focus-visible{outline:2px solid #146448;outline-offset:2px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px}
+  .rowbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.rowbar strong{font-size:17px}
+  .formbar{display:flex;gap:10px;align-items:end;margin:0 0 8px}.formbar label{flex:1;min-width:0}.formbar select{margin-bottom:0}
+  .thumb{display:block;width:100%;height:128px;object-fit:contain;background:#e7eee9;border-radius:8px}
+  .photo-note{display:block;margin:-4px 0 6px}
+  [hidden]{display:none!important}
+  .summary{margin:10px 0 0}.notice{border-left:4px solid #c57a20;padding-left:10px;color:#714611}
+  .download{display:inline-block;color:#17573f;margin:8px 0 0}
+  @media(max-width:560px){main{padding-top:16px}.uploads{grid-template-columns:1fr}.fields{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:1/-1}.pictures{gap:8px}section,article{padding:14px}.actions button{width:100%}}
+</style>
+<script src="app.js" defer></script>
+</head>
+<body>
+<header><div class="heading"><p class="workspace">관재 업무</p><h1>물품 회수 기록</h1><p>불용·반납 물품의 사진을 신청서별 엑셀로 정리합니다.</p></div></header>
+<main>
+<section>
+  <h2>신청서와 증빙 사진</h2>
+  <div class="uploads">
+    <label>신청서 <small>표 전체가 보이는 신청서 사진 여러 장</small><input id="form" type="file" accept="image/*,.heic,.heif" multiple><small id="formCount">0장</small></label>
+    <label>스티커 사진 <small>QR과 번호가 보이게 가까이 촬영</small><input id="sticker" type="file" accept="image/*,.heic,.heif" multiple><small id="stickerCount">0장</small></label>
+    <label>비품 사진 <small>장비 전체 모습</small><input id="photo" type="file" accept="image/*,.heic,.heif" multiple><small id="photoCount">0장</small></label>
+  </div>
+  <p id="status" class="summary" role="status" aria-live="polite"></p>
+</section>
+<section>
+  <h2>품목과 사진 확인</h2>
+  <p class="muted">스티커는 자산번호로 연결합니다. 품목과 비품 사진이 각각 하나면 자동으로 연결하고, 여러 개면 품목별로 사진을 골라 주세요.</p>
+  <p id="emptyForms" class="muted">신청서 사진을 올리면 이곳에 인식 결과가 표시됩니다.</p>
+  <div id="editor" hidden>
+  <div class="formbar"><label>확인할 신청서<select id="current"></select></label><button type="button" id="removeForm">신청서 제외</button></div>
+  <p id="source"></p>
+  <div class="fields">
+    <label>신청부서<input id="department" maxlength="60"></label>
+    <label>신청번호<input id="application" maxlength="40" autocapitalize="characters"></label>
+    <label>신청자<input id="applicant" maxlength="60"></label>
+  </div>
+  <ul id="notes" class="notice" hidden></ul>
+  <div id="rows"></div>
+  <button type="button" id="add">품목 행 추가</button>
+  <button type="button" id="match">스티커 다시 찾기</button>
+  </div>
+</section>
+<section>
+  <h2>회수 완료 자료 저장</h2>
+  <p class="muted">신청서마다 품목 수만큼 행을 만들어 저장합니다. 연결하지 않은 사진 칸은 비워 둡니다.</p>
+  <p id="ready" aria-live="polite"></p>
+  <div class="actions">
+    <button type="button" class="primary" id="exportAll">전체 ZIP 다운로드</button>
+    <button type="button" id="export">현재 신청서 엑셀 다운로드</button>
+  </div>
+  <p id="result" class="summary" role="status" aria-live="polite"></p>
+</section>
+</main></body>
+</html>
